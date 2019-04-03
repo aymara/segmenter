@@ -11,7 +11,7 @@ import argparse
 import os
 import codecs
 import tensorflow as tf
-import cPickle as pickle
+import pickle
 
 from time import time
 
@@ -96,9 +96,9 @@ parser.add_argument('-tt', '--transduction_type', default='mix', choices=['mix',
 
 args = parser.parse_args()
 
-sys = reload(sys)
-sys.setdefaultencoding('utf-8')
-print 'Encoding: ', sys.getdefaultencoding()
+#sys = reload(sys)
+#sys.setdefaultencoding('utf-8')
+print( 'Encoding: ', sys.getdefaultencoding())
 
 if args.action == 'train':
     assert args.path is not None
@@ -106,7 +106,7 @@ if args.action == 'train':
     train_file = args.train
     dev_file = args.dev
     model_file = args.model
-    print 'Reading data......'
+    print('Reading data......')
     f_names = os.listdir(path)
     if train_file is None or dev_file is None:
         for f_n in f_names:
@@ -167,7 +167,7 @@ if args.action == 'train':
                                                                                         args.crf)
 
     if args.embeddings is not None:
-        print 'Reading embeddings...'
+        print('Reading embeddings...')
         short_emb = args.embeddings[args.embeddings.index('/') + 1: args.embeddings.index('.')]
         if args.reset or not os.path.isfile(path + '/' + short_emb + '_sub.txt'):
             toolbox.get_sample_embedding(path, args.embeddings, char2idx)
@@ -188,9 +188,9 @@ if args.action == 'train':
                                                    sent_seg=args.sent_seg, is_space=is_space,
                                                    ignore_space=args.ignore_space)
     if args.sent_seg:
-        print 'Joint sentence segmentation...'
+        print('Joint sentence segmentation...')
     else:
-        print 'Training set: %d instances; Dev set: %d instances.' % (len(train_x[0]), len(dev_x[0]))
+        print('Training set: %d instances; Dev set: %d instances.' % (len(train_x[0]), len(dev_x[0])))
 
     nums_grams = None
     ng_embs = None
@@ -242,13 +242,13 @@ if args.action == 'train':
         with transducer_graph.as_default():
             with tf.variable_scope("transducer") as scope:
                 trans_model = Seq2seq(path + '/' + model_file + '_transducer')
-                print 'Defining transducer...'
+                print('Defining transducer...')
                 trans_model.define(char_num=len(char2idx), rnn_dim=args.rnn_cell_dimension, emb_dim=args.emb_dimension,
                                    max_x=len(transducer[0][0]), max_y=len(transducer[1][0]))
             trans_init = tf.global_variables_initializer()
         transducer_graph.finalize()
 
-    print 'Initialization....'
+    print('Initialization....')
     main_graph = tf.Graph()
     with main_graph.as_default():
         with tf.variable_scope("tagger") as scope:
@@ -265,7 +265,7 @@ if args.action == 'train':
                      momentum=args.momentum, clipping=not args.no_clipping)
         init = tf.global_variables_initializer()
 
-        print 'Done. Time consumed: %d seconds' % int(time() - t)
+        print('Done. Time consumed: %d seconds' % int(time() - t))
 
     main_graph.finalize()
 
@@ -287,18 +287,18 @@ if args.action == 'train':
     with tf.device(gpu_config):
 
         if transducer is not None:
-            print 'Building transducer...'
+            print('Building transducer...')
             t = time()
             trans_sess = tf.Session(config=config, graph=transducer_graph)
             trans_sess.run(trans_init)
             trans_model.train(transducer[0], transducer[1], transducer[2], transducer[3], args.learning_rate_trans,
                               char2idx, trans_sess, args.epochs_trans, batch_size=10, reset=args.reset_trans)
             sess.append(trans_sess)
-            print 'Done. Time consumed: %d seconds' % int(time() - t)
-            print 'Training the main segmenter..'
+            print('Done. Time consumed: %d seconds' % int(time() - t))
+            print('Training the main segmenter..')
         main_sess.run(init)
-        print 'Initialisation...'
-        print 'Done. Time consumed: %d seconds' % int(time() - t)
+        print('Initialisation...')
+        print('Done. Time consumed: %d seconds' % int(time() - t))
         t = time()
         b_dev_raw = [line.strip() for line in codecs.open(path + '/raw_dev.txt', 'r', encoding='utf-8')]
         model.train(b_train_x, b_train_y, b_dev_x, b_dev_raw, b_dev_y_gold, idx2tag, idx2char, unk_chars_idx, trans_dict,
@@ -409,9 +409,9 @@ else:
         max_step = max_len_test
 
         if sent_seg:
-            print 'Joint sentence segmentation...'
+            print('Joint sentence segmentation...')
         else:
-            print 'Test set: %d instances.' % len(test_x[0])
+            print('Test set: %d instances.' % len(test_x[0]))
 
         if ngram > 1:
             gram2idx = toolbox.get_ngram_dic(grams)
@@ -448,9 +448,9 @@ else:
                                                            sent_seg=sent_seg, is_space=is_space)
 
             if sent_seg:
-                print 'Joint sentence segmentation...'
+                print('Joint sentence segmentation...')
             else:
-                print 'Raw setences: %d instances.' % len(raw_x[0])
+                print('Raw setences: %d instances.' % len(raw_x[0]))
 
             max_step = raw_len
 
@@ -505,13 +505,13 @@ else:
                 tr_max_x = trans_param_dic['max_x']
                 tr_max_y = trans_param_dic['max_y']
 
-                print 'Defining transducer...'
+                print('Defining transducer...')
                 trans_model.define(char_num=tr_char_num, rnn_dim=tr_rnn_dim, emb_dim=tr_emb_dim,
                                    max_x=tr_max_x, max_y=tr_max_y, write_trans_model=False)
             trans_init = tf.global_variables_initializer()
         transducer_graph.finalize()
 
-    print 'Initialization....'
+    print('Initialization....')
     main_graph = tf.Graph()
     with main_graph.as_default():
         with tf.variable_scope("tagger") as scope:
@@ -525,7 +525,7 @@ else:
 
         init = tf.global_variables_initializer()
 
-        print 'Done. Time consumed: %d seconds' % int(time() - t)
+        print('Done. Time consumed: %d seconds' % int(time() - t))
     main_graph.finalize()
 
     idx=None
@@ -555,18 +555,20 @@ else:
 
     with tf.device(gpu_config):
         ens_model = None
-        print 'Loading weights....'
+        print('Loading weights....')
         if args.ensemble:
             for i in range(1, idx):
-                print 'Ensemble: ' + str(i)
+                print('Ensemble: ' + str(i))
                 main_sess[i - 1].run(init)
-                model.run_updates(main_sess[i - 1], weight_path + '_' + str(i) + '_weights')
+                model.load_weights(main_sess[i - 1], weight_path + '_' + str(i) + '_weights')
+                model.run_updates(main_sess[i - 1])
         else:
             main_sess.run(init)
-            model.run_updates(main_sess, weight_path + '_weights')
+            model.load_weights(main_sess, weight_path + '_weights')
+            model.run_updates(main_sess)
 
         if transducer is not None:
-            print 'Loading transducer...'
+            print('Loading transducer...')
             t = time()
             trans_sess = tf.Session(config=config, graph=transducer_graph)
             trans_sess.run(trans_init)
@@ -609,7 +611,7 @@ else:
                         if c_line >= args.large_size:
                             count += len(lines)
                             c_line = 0
-                            print count
+                            print(count)
                             if args.sent_seg:
                                 raw_x, _ = toolbox.get_input_vec_tag(None, None, char2idx, lines=lines,
                                                                      limit=args.sent_limit, is_space=is_space)
@@ -711,4 +713,4 @@ else:
                                     l_writer.write('\n')
                 l_writer.close()
 
-        print 'Done.'
+        print('Done.')

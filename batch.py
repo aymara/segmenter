@@ -16,7 +16,7 @@ def train(sess, model, batch_size, config, lr, lrv, data, dr=None, drv=None, ver
         model.append(dr)
     while start_idx < len(samples):
         if verbose:
-            print '%d' % (start_idx * 100 / n_samples) + '%'
+            print('%d' % (start_idx * 100 / n_samples) + '%')
         next_batch_samples = samples[start_idx:start_idx + batch_size]
         real_batch_size = len(next_batch_samples)
         if real_batch_size < batch_size:
@@ -48,7 +48,7 @@ def predict(sess, model, data, dr=None, transitions=None, crf=True, decode_sess=
         input_v.append(dr)
     predictions = model[num_items:]
     output = [[] for _ in range(len(predictions))]
-    samples = zip(*data)
+    samples = list(zip(*data))
     start_idx = 0
     n_samples = len(samples)
     if crf > 0:
@@ -63,8 +63,8 @@ def predict(sess, model, data, dr=None, transitions=None, crf=True, decode_sess=
                 trans.append(sess.run(transitions[i]))
     while start_idx < n_samples:
         if verbose:
-            print '%d' % (start_idx*100/n_samples) + '%'
-        next_batch_input = samples[start_idx:start_idx + batch_size]
+            print('%d' % (start_idx*100/n_samples) + '%')
+        next_batch_input = samples[start_idx:start_idx + int(batch_size)]
         batch_size = len(next_batch_input)
         holders= []
         for item in range(num_items):
@@ -115,7 +115,7 @@ def predict(sess, model, data, dr=None, transitions=None, crf=True, decode_sess=
 
 def train_seq2seq(sess, model, decoding, batch_size, config, lr, lrv, data, dr=None, drv=None, verbose=False):
     #assert len(data) == len(model)
-    samples = zip(*data)
+    samples = list(zip(*data))
     random.shuffle(samples)
     start_idx = 0
     n_samples = len(samples)
@@ -125,13 +125,13 @@ def train_seq2seq(sess, model, decoding, batch_size, config, lr, lrv, data, dr=N
         model.append(dr)
     while start_idx < len(samples):
         if verbose:
-            print '%d' % (start_idx * 100 / n_samples) + '%'
+            print('%d' % (start_idx * 100 / n_samples) + '%')
         next_batch_samples = samples[start_idx:start_idx + batch_size]
         real_batch_size = len(next_batch_samples)
         if real_batch_size < batch_size:
             next_batch_samples.extend(samples[:batch_size - real_batch_size])
         holders = []
-        next_batch_samples = zip(*next_batch_samples)
+        next_batch_samples = list(zip(*next_batch_samples))
         for n_batch in next_batch_samples:
             n_batch = np.asarray(n_batch).T
             for b in n_batch:
@@ -153,16 +153,16 @@ def predict_seq2seq(sess, model, decoding, data, decode_len, dr=None, argmax=Tru
         input_v.append(dr)
     predictions = model[num_items*in_len + decode_len:]
     output = []
-    samples = zip(*data)
+    samples = list(zip(*data))
     start_idx = 0
     n_samples = len(samples)
     while start_idx < n_samples:
         if verbose:
-            print '%d' % (start_idx * 100 / n_samples) + '%'
+            print('%d' % (start_idx * 100 / n_samples) + '%')
         next_batch_input = samples[start_idx:start_idx + batch_size]
         batch_size = len(next_batch_input)
         holders = []
-        next_batch_input = zip(*next_batch_input)
+        next_batch_input = list(zip(*next_batch_input))
         for n_batch in next_batch_input:
             n_batch = np.asarray(n_batch).T
             for b in n_batch:

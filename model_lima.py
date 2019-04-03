@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import sys
 import tensorflow as tf
 from layers import EmbeddingLayer, BiLSTM, HiddenLayer, DropoutLayer, Convolution, Maxpooling, Forward
 from time import time
@@ -13,8 +14,10 @@ import evaluation
 
 class Model(object):
 
-    def __init__(self, nums_chars, nums_tags, buckets_char, counts=None, batch_size=10, crf=1, ngram=None,
-                 sent_seg=False, is_space=True, emb_path=None, tag_scheme='BIES'):
+    def __init__(self, nums_chars, nums_tags, buckets_char, counts=None,
+                 batch_size=10, crf=1, ngram=None,
+                 sent_seg=False, is_space=True, emb_path=None,
+                 tag_scheme='BIES'):
         self.nums_chars = nums_chars
         self.nums_tags = nums_tags
         self.buckets_char = buckets_char
@@ -57,11 +60,21 @@ class Model(object):
 
     def main_graph(self, trained_model, scope, emb_dim, cell, rnn_dim, rnn_num, drop_out=0.5, emb=None):
         if trained_model is not None:
-            param_dic = {'nums_chars': self.nums_chars, 'nums_tags': self.nums_tags, 'crf': self.crf, 'emb_dim':emb_dim,
-                         'cell': cell, 'rnn_dim': rnn_dim, 'rnn_num': rnn_num, 'drop_out': drop_out,
-                         'buckets_char': self.buckets_char, 'ngram': self.ngram, 'is_space': self.is_space,
-                         'sent_seg': self.sent_seg, 'emb_path': self.emb_path, 'tag_scheme': self.tag_scheme}
-            #print param_dic
+            param_dic = {'nums_chars': self.nums_chars,
+                         'nums_tags': self.nums_tags,
+                         'crf': self.crf,
+                         'emb_dim':emb_dim,
+                         'cell': cell,
+                         'rnn_dim': rnn_dim,
+                         'rnn_num': rnn_num,
+                         'drop_out': drop_out,
+                         'buckets_char': self.buckets_char,
+                         'ngram': self.ngram,
+                         'is_space': self.is_space,
+                         'sent_seg': self.sent_seg,
+                         'emb_path': self.emb_path,
+                         'tag_scheme': self.tag_scheme}
+            #print(param_dic)
             f_model = open(trained_model, 'w')
             pickle.dump(param_dic, f_model)
             f_model.close()
@@ -135,7 +148,7 @@ class Model(object):
             self.output_.append([tf.placeholder(tf.int32, [None, bucket], name='tags' + str(bucket))])
             self.bucket_dit[bucket] = idx
 
-            print('Bucket %d, %f seconds' % (idx + 1, time() - t1))
+            #print('Bucket %d, %f seconds' % (idx + 1, time() - t1), file=sys.stderr)
 
         assert len(self.input_v) == len(self.output)
 
@@ -146,9 +159,9 @@ class Model(object):
     def config(self, optimizer, decay, lr_v=None, momentum=None, clipping=True, max_gradient_norm=5.0):
 
         self.decay = decay
-        print('Training preparation...')
+        print('Training preparation...', file=sys.stderr)
 
-        print('Defining loss...')
+        print('Defining loss...', file=sys.stderr)
         loss = []
         if self.crf > 0:
             loss_function = losses.crf_loss
@@ -181,7 +194,7 @@ class Model(object):
 
         self.train_step = []
 
-        print('Computing gradients...')
+        print('Computing gradients...', file=sys.stderr)
 
         for idx, l in enumerate(loss):
             t2 = time()
@@ -191,7 +204,7 @@ class Model(object):
                 train_step = optimizer.apply_gradients(zip(clipped_gradients, self.params))
             else:
                 train_step = optimizer.minimize(l)
-            print('Bucket %d, %f seconds' % (idx + 1, time() - t2))
+            print('Bucket %d, %f seconds' % (idx + 1, time() - t2), file=sys.stderr)
             self.train_step.append(train_step)
 
     def decode_graph(self):
@@ -239,7 +252,7 @@ class Model(object):
     def define_updates(self, new_chars, emb_path, char2idx):
 
         self.nums_chars += len(new_chars)
-
+        self.updates = []
         if emb_path is not None:
 
             old_emb_weights = self.emb_layer.embeddings
@@ -305,7 +318,7 @@ class Model(object):
                 return self.define_transducer_dict(trans_str, char2idx, sess[-1], transducer)
 
         for epoch in range(epochs):
-            print('epoch: %d' % (epoch + 1))
+            print('epoch: %d' % (epoch + 1), file=sys.stderr)
             t = time()
             if epoch % decay_step == 0 and decay > 0:
                 lr_r = lr/(1 + decay*(epoch/decay_step))
@@ -357,7 +370,7 @@ class Model(object):
             if c_score > c_best_score:
                 best_epoch = epoch + 1
                 best_score = scores
-                self.saver.save(sess[0], trained_model, write_meta_graph=True)
+                self.saver.save(sess[0], trained_model, write_meta_graph=False)
 
                 if outpath is not None:
                     wt = codecs.open(outpath, 'w', encoding='utf-8')
@@ -456,8 +469,9 @@ class Model(object):
             print('F score: %f' % scores[2])
             print('True negative rate: %f' % scores[3])
 
-    def tag(self, r_x, r_x_raw, idx2tag, idx2char, unk_chars, sub_dict, trans_dict, sess, transducer, ensemble=None,
-            batch_size=100, outpath=None, sent_seg=False, seg_large=False, form='conll'):
+    def tag(self, r_x, idx2tag, idx2char, unk_chars, sub_dict,
+            sess, ensemble=None,
+            batch_size=100):
 
         chars = toolbox.decode_chars(r_x[0], idx2char)
 
@@ -473,42 +487,24 @@ class Model(object):
 
         real_batch = batch_size * 300 / c_len
 
-        transducer_dict = None
-        if transducer is not None:
-            char2idx = {v: k for k, v in idx2char.items()}
-
-            def transducer_dict(trans_str):
-                return self.define_transducer_dict(trans_str, char2idx, sess[-1], transducer)
-
-        prediction = self.predict(data=r_x, sess=sess, model=self.input_v[idx] + self.output[idx], index=idx,
-                                  argmax=True, batch_size=real_batch, ensemble=ensemble)
+        #print('predict', file=sys.stderr)
+        prediction = self.predict(data=r_x,
+                                  sess=sess,
+                                  model=self.input_v[idx] + self.output[idx],
+                                  index=idx,
+                                  argmax=True,
+                                  batch_size=real_batch,
+                                  ensemble=ensemble)
 
         predictions = toolbox.decode_tags(prediction, idx2tag)
+        #print(f'GOT predictions {len(chars)}, {len(chars[0])}', file=sys.stderr)
+        #print(f'GOT predictions {len(predictions)},',
+              #f'{len(predictions[0])}, {len(predictions[0][0])}',
+              #file=sys.stderr)
+        sentences = toolbox.generate_output_offsets(chars, predictions)
+        #print(f'generate_output_offsets DONE', file=sys.stderr)
 
-        if self.is_space == 'sea':
-            prediction_out, raw_out = toolbox.generate_output_sea(chars, predictions)
-            multi_out = prediction_out
-        else:
-            prediction_out, raw_out, multi_out = toolbox.generate_output(chars, predictions, trans_dict,
-                                                                         transducer_dict, multi_tok=True)
-
-        pre_out = []
-        mut_out = []
-        for pre in prediction_out:
-            pre_out += pre
-        for mul in multi_out:
-            mut_out += mul
-        prediction_out = pre_out
-        multi_out = mut_out
-
-        if form == 'mlp1' or form == 'mlp2':
-            prediction_out = toolbox.mlp_post(r_x_raw, prediction_out, self.is_space, form)
-
-        if not seg_large:
-            toolbox.printer(r_x_raw, prediction_out, multi_out, outpath, sent_seg, form)
-
-        else:
-            return prediction_out, multi_out
+        return sentences
 
     def predict(self, data, sess, model, index=None, argmax=True, batch_size=100, ensemble=None, verbose=False):
         if self.crf:

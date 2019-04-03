@@ -4,7 +4,7 @@ import tensorflow.contrib.legacy_seq2seq as seq2seq
 import toolbox
 import batch as Batch
 import numpy as np
-import cPickle as pickle
+import pickle
 import evaluation
 
 import os
@@ -52,7 +52,7 @@ class Seq2seq(object):
             param_dic['emb_dim'] = emb_dim
             param_dic['max_x'] = max_x
             param_dic['max_y'] = max_y
-            # print param_dic
+            # print(param_dic)
             f_model = open(self.trained + '_model', 'w')
             pickle.dump(param_dic, f_model)
             f_model.close()
@@ -77,10 +77,10 @@ class Seq2seq(object):
 
                 c_scores = evaluation.trans_evaluator(gold_out, pred_out)
 
-                print 'epoch: %d' % (epoch + 1)
+                print('epoch: %d' % (epoch + 1))
 
-                print 'ACC: %f' % c_scores[0]
-                print 'Token F score: %f' % c_scores[1]
+                print('ACC: %f' % c_scores[0])
+                print('Token F score: %f' % c_scores[1])
 
                 if c_scores[1] > best_score:
                     best_score = c_scores[1]

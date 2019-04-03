@@ -10,8 +10,8 @@ import os
 import math
 from reader import get_gold
 
-sys = reload(sys)
-sys.setdefaultencoding('utf-8')
+#sys = reload(sys)
+#sys.setdefaultencoding('utf-8')
 
 punc = ['!', ')', ',', '.', ';', ':', '?', '»', '...', '..', '....', '%', 'º', '²', '°', '¿', '¡', '(', '«',
         '"', '\'', '-', '。', '·', '।', '۔']
@@ -390,7 +390,7 @@ def get_input_vec(path, fname, char2idx, tag2idx, limit=500, sent_seg=False, is_
                 break
         max_len = min(max_len, limit)
         if l_count > 0:
-            print '%d (out of %d) sentences are chopped.' % (l_count, s_count)
+            print('%d (out of %d) sentences are chopped.' % (l_count, s_count))
     return [x_indices], [y_indices], max_len
 
 
@@ -543,15 +543,17 @@ def get_input_vec_raw(path, fname, char2idx, lines=None, limit=500, sent_seg=Fal
                 x = []
         max_len = min(max_len, limit)
         if l_count > 0:
-            print '%d (out of %d) sentences are chopped.' % (l_count, s_count)
+            print('%d (out of %d) sentences are chopped.' % (l_count, s_count))
     return [x_indices], max_len
 
 
 def get_input_vec_tag(path, fname, char2idx, lines=None, limit=500, is_space=True):
+    #print(f'get_input_vec_tag {path}, {fname}, {char2idx}, {lines}, {limit}, {is_space}', file=sys.stderr)
     space_idx = None
     if is_space is True:
         assert ' ' in char2idx
         space_idx = char2idx[' ']
+    #print(f'space_idx: {space_idx}', file=sys.stderr)
     x_indices = []
     out = []
     x = []
@@ -562,14 +564,15 @@ def get_input_vec_tag(path, fname, char2idx, lines=None, limit=500, is_space=Tru
             real_path = fname
         else:
             real_path = path + '/' + fname
-        lines = codecs.open(real_path, 'r', encoding='utf-8')
+        lines = codecs.open(real_path, 'rb', encoding='utf-8')
     for line in lines:
-        line = line.strip()
+        ##line = line.strip()
         if len(line) > 0:
             if is_space == 'sea':
                 line = pre_token(line)
             if len(line) > 0:
                 for ch in line:
+                    #print(f'"{ch}"', file=sys.stderr)
                     if len(ch.strip()) == 0:
                         x.append(char2idx[' '])
                     elif ch in char2idx:
@@ -579,8 +582,8 @@ def get_input_vec_tag(path, fname, char2idx, lines=None, limit=500, is_space=Tru
                 if is_space is True:
                     if is_first:
                         is_first = False
-                    else:
-                        x = [space_idx] + x
+                    #else:
+                        #x = [space_idx] + x
                 x_indices += x
                 x = []
             elif len(x_indices) > 0:
@@ -1020,7 +1023,7 @@ def raw2tags(raw, sents, path, train_file, creat_dict=True, gold_path=None, igno
                 wd.write(i[0] + '\t' + str(i[1]) + '\n')
             wd.write('\n')
     wt.close()
-    print 'invalid sentences: ', invalid, len(raw)
+    print('invalid sentences: ', invalid, len(raw))
 
 
 def raw2tags_sea(raw, sents, path, train_file, gold_path=None, reset=False, tag_scheme='BIES'):
@@ -1094,7 +1097,7 @@ def raw2tags_sea(raw, sents, path, train_file, gold_path=None, reset=False, tag_
         wtg.close()
     wt.close()
 
-    print 'invalid sentences: ', invalid, len(raw)
+    print('invalid sentences: ', invalid, len(raw))
 
 
 def pad_zeros(l, max_len):
@@ -1139,7 +1142,7 @@ def buckets(x, y, size=50):
             while len(item[0]) > t_len:
                 t_len += size
         for i in range(num_items):
-            #print item[i]
+            #print(item[i])
             bucks[i][idx].append(item[i])
 
     return bucks[:num_inputs], bucks[num_inputs:]
@@ -1163,7 +1166,7 @@ def pad_bucket(x, y, limit, bucket_len_c=None):
             bucket_counts.append(len(item[0]))
             for idx in range(num_tags + num_inputs):
                 padded[idx].append(pad_zeros(item[idx], max_len))
-        print 'Number of buckets: ', len(bucket_len_c)
+        print('Number of buckets: ', len(bucket_len_c))
     else:
         idy = 0
         for item in xy:
@@ -1402,6 +1405,145 @@ def generate_output(chars, tags, trans_dict, transducer_dict=None, multi_tok=Fal
         return out, raw_out
 
 
+def generate_output_offsets(chars, tags):
+    """Generate an output including token offsets.
+
+    Tags are taken from IXBTUK (Inside, eXtern, Beginning, end of senTence, ???, ???)
+
+    :param chars: list of lists of chars
+    :param tags: list of lists of lists of tags
+    """
+    #print(f'generate_output_offsets chars: { chars[0] }', file=sys.stderr)
+    #print(f'generate_output_offsets tags:  { tags[0][0] }\n\n',
+          #file=sys.stderr)
+    sentences = []
+
+    for i, tag in enumerate(tags):
+        assert len(chars) == len(tag)
+        j_chars = []
+        j_tags = []
+        is_first = True
+        for chs, tgs in zip(chars, tag):
+            if chs[0] == '<#>':
+                assert len(j_chars) > 0
+                if is_first:
+                    is_first = False
+                    j_chars[-1] = j_chars[-1][:-5] + chs[6:]
+                    j_tags[-1] = j_tags[-1][:-5] + tgs[6:]
+                else:
+                    j_chars[-1] = j_chars[-1][:-5] + chs[5:]
+                    j_tags[-1] = j_tags[-1][:-5] + tgs[5:]
+            else:
+                j_chars.append(chs)
+                j_tags.append(tgs)
+                is_first = True
+        chars = j_chars
+        tag = j_tags
+        offset = -1
+        current_sentence = []
+        for chs, tgs in zip(chars, tag):
+            assert len(chs) == len(tgs)
+            # current word (?)
+            current_token = ''
+            # current word offset
+            current_token_offset = offset
+            # current transition (?)
+            current_transistion = ''
+            for ch, tg in zip(chs, tgs):
+                offset += 1
+                # Inside
+                if tg == 'I':
+                    if len(current_transistion) > 0:
+                        # was in transition, new token
+                        current_transistion = ''
+                        current_token = ch
+                        current_token_offset = offset
+                    elif len(current_token) == 0:
+                        current_token += ch
+                        current_token_offset = offset
+                    else:
+                        # inside a token
+                        current_token += ch
+                # Outside
+                elif tg == 'Z':
+                    current_token = current_token.strip()
+                    if len(current_token) > 0:
+                        # was inside a token. Validate it.
+                        current_sentence.append((current_token,
+                                                  current_token_offset))
+                        current_token = ''
+                        current_token_offset = offset
+                        current_transistion = ch
+                    else:
+                        current_transistion += ch
+                # Beginning
+                elif tg == 'B':
+                    current_token = current_token.strip()
+                    if len(current_token) > 0:
+                        # start a new contiquous token
+                        current_sentence.append((current_token,
+                                                  current_token_offset))
+                    elif len(current_transistion) > 0:
+                        current_transistion = current_transistion.strip()
+                        current_transistion = ''
+                    current_token = ch
+                    current_token_offset = offset
+                elif tg == 'K':
+                    current_token = current_token.strip()
+                    if len(current_token) > 0:
+                        current_sentence.append((current_token,
+                                                  current_token_offset))
+                        current_token = ''
+                        current_token_offset = offset
+                    current_transistion = ch
+                elif tg == 'T':
+                    # end of sentence
+                    current_token = current_token.strip()
+                    if len(current_token) > 0:
+                        current_sentence.append((current_token,
+                                                current_token_offset))
+                    current_token = ch
+                    current_token_offset = offset
+                    current_token = current_token.strip()
+                    if len(current_token) > 0:
+                        current_sentence.append((current_token,
+                                                current_token_offset))
+                    current_token = ''
+                    if len(current_sentence) > 0:
+                        sentences.append(current_sentence)
+                    current_sentence = []
+                elif tg == 'U':
+                    current_token = current_token.strip()
+                    if len(current_token) > 0:
+                        current_token += ch
+                        current_sentence.append((current_token,
+                                                  current_token_offset))
+                        current_token = ''
+                        current_token_offset = offset
+                    elif len(current_transistion) > 0:
+                        pass
+                    if len(current_sentence) > 0:
+                        sentences.append(current_sentence)
+                    current_sentence = []
+                elif tg == 'X':
+                    current_token = current_token.strip()
+                    if len(current_token) > 0:
+                        current_sentence.append((current_token,
+                                                 current_token_offset))
+                        current_token = ''
+                        current_token_offset = offset
+            current_token = current_token.strip()
+            if len(current_token) > 0:
+                current_sentence.append((current_token, current_token_offset))
+            elif len(current_transistion) > 0:
+                current_transistion = current_transistion.strip()
+            if len(current_sentence) > 0:
+                sentences.append(current_sentence)
+                current_sentence = []
+    #print(f'generate_output_offsets DONE\n', file=sys.stderr)
+    return sentences
+
+
 def generate_output_sea(chars, tags):
     out = []
     raw_out = []
@@ -1573,8 +1715,8 @@ def get_new_embeddings(new_chars, emb_dim, emb_path):
 def update_char_dict(char2idx, new_chars, unk_chars_idx, valid_chars=None):
     l_quos = ['"', '«', '„']
     r_quos = ['"', '»', '“']
-    l_quos = [unicode(ch) for ch in l_quos]
-    r_quos = [unicode(ch) for ch in r_quos]
+    l_quos = [ch for ch in l_quos]
+    r_quos = [ch for ch in r_quos]
     sub_dict = {}
     old_chars = char2idx.keys()
     dim = len(char2idx) + 10
@@ -1697,7 +1839,7 @@ def biased_out(prediction, bias):
     if idx == len(props):
         idx -= 1
     th = props[idx]
-    print 'threshold: ', th, 1 / (1 + np.exp(-th))
+    print('threshold: ', th, 1 / (1 + np.exp(-th)))
     for pre in b_pres:
         pre[pre >= th] = 0
         pre[pre != 0] = 1
@@ -1746,14 +1888,15 @@ def validator(raw, generated):
                     raw_l = raw_l[l_w:]
                     raw_l = raw_l.strip()
                 else:
-                    print r_seg
-                    print raw_l[:l_w]
-                    print ''
+                    print(r_seg)
+                    print(raw_l[:l_w])
+                    print('')
                     raise Exception('Error: unmatch...')
             j += 1
 
 
 def mlp_post(raw, prediction, is_space=False, form='mlp1'):
+    #print(len(raw), len(prediction))
     assert len(raw) == len(prediction)
     out = []
     for r_l, p_l in zip(raw, prediction):
