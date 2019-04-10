@@ -266,6 +266,7 @@ if args.action == 'train':
         init = tf.global_variables_initializer()
 
         print('Done. Time consumed: %d seconds' % int(time() - t))
+        sys.stdout.flush()
 
     main_graph.finalize()
 
@@ -299,6 +300,7 @@ if args.action == 'train':
         main_sess.run(init)
         print('Initialisation...')
         print('Done. Time consumed: %d seconds' % int(time() - t))
+        sys.stdout.flush()
         t = time()
         b_dev_raw = [line.strip() for line in codecs.open(path + '/raw_dev.txt', 'r', encoding='utf-8')]
         model.train(b_train_x, b_train_y, b_dev_x, b_dev_raw, b_dev_y_gold, idx2tag, idx2char, unk_chars_idx, trans_dict,
@@ -526,6 +528,7 @@ else:
         init = tf.global_variables_initializer()
 
         print('Done. Time consumed: %d seconds' % int(time() - t))
+        sys.stdout.flush()
     main_graph.finalize()
 
     idx=None

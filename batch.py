@@ -7,7 +7,7 @@ import numpy as np
 def train(sess, model, batch_size, config, lr, lrv, data, dr=None, drv=None, verbose=False):
     assert len(data) == len(model)
     num_items = len(data)
-    samples = zip(*data)
+    samples = list(zip(*data))
     random.shuffle(samples)
     start_idx = 0
     n_samples = len(samples)

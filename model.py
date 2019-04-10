@@ -9,7 +9,7 @@ import random
 import pickle
 import codecs
 import evaluation
-
+import sys
 
 class Model(object):
 
@@ -62,7 +62,7 @@ class Model(object):
                          'buckets_char': self.buckets_char, 'ngram': self.ngram, 'is_space': self.is_space,
                          'sent_seg': self.sent_seg, 'emb_path': self.emb_path, 'tag_scheme': self.tag_scheme}
             #print param_dic
-            f_model = open(trained_model, 'w')
+            f_model = open(trained_model, 'wb')
             pickle.dump(param_dic, f_model)
             f_model.close()
 
@@ -306,13 +306,14 @@ class Model(object):
 
         for epoch in range(epochs):
             print('epoch: %d' % (epoch + 1))
+            sys.stdout.flush()
             t = time()
             if epoch % decay_step == 0 and decay > 0:
                 lr_r = lr/(1 + decay*(epoch/decay_step))
 
             data_list = t_x + t_y
 
-            samples = zip(*data_list)
+            samples = list(zip(*data_list))
 
             random.shuffle(samples)
 
@@ -335,7 +336,7 @@ class Model(object):
             b_prediction = toolbox.decode_tags(b_prediction, idx2tag)
             predictions.append(b_prediction)
 
-            predictions = zip(*predictions)
+            predictions = list(zip(*predictions))
             predictions = toolbox.merge_bucket(predictions)
 
             if self.is_space == 'sea':
@@ -367,13 +368,12 @@ class Model(object):
 
 
             if sent_seg:
-                print('Sentence segmentation:')
-                print('F score: %f\n' % scores[5])
-                print('Word segmentation:')
-                print('F score: %f' % scores[2])
+                print('Sentence segmentation F-score: %f' % scores[5])
+                print('Word segmentation     F-score: %f' % scores[2])
             else:
                 print('F score: %f' % c_score)
-            print('Time consumed: %d seconds' % int(time() - t))
+            print('Time consumed: %d seconds\n' % int(time() - t))
+            sys.stdout.flush()
         print('Training is finished!')
         if sent_seg:
             print('Sentence segmentation:')

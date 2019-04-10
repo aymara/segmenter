@@ -319,13 +319,14 @@ class Model(object):
 
         for epoch in range(epochs):
             print('epoch: %d' % (epoch + 1), file=sys.stderr)
+            sys.stdout.flush()
             t = time()
             if epoch % decay_step == 0 and decay > 0:
                 lr_r = lr/(1 + decay*(epoch/decay_step))
 
             data_list = t_x + t_y
 
-            samples = zip(*data_list)
+            samples = list(zip(*data_list))
 
             random.shuffle(samples)
 
@@ -348,7 +349,7 @@ class Model(object):
             b_prediction = toolbox.decode_tags(b_prediction, idx2tag)
             predictions.append(b_prediction)
 
-            predictions = zip(*predictions)
+            predictions = list(zip(*predictions))
             predictions = toolbox.merge_bucket(predictions)
 
             if self.is_space == 'sea':
@@ -378,25 +379,24 @@ class Model(object):
                         wt.write(pre + '\n')
                     wt.close()
 
-
             if sent_seg:
-                print('Sentence segmentation:')
-                print('F score: %f\n' % scores[5])
-                print('Word segmentation:')
-                print('F score: %f' % scores[2])
+                print('Sentence segmentation F-score: %f' % scores[5])
+                print('Word segmentation     F-score: %f' % scores[2])
             else:
                 print('F score: %f' % c_score)
-            print('Time consumed: %d seconds' % int(time() - t))
+            print('Time consumed: %d seconds\n' % int(time() - t))
+            sys.stdout.flush()
         print('Training is finished!')
+
         if sent_seg:
             print('Sentence segmentation:')
-            print('Best F score: %f' % best_score[5])
-            print('Best Precision: %f' % best_score[3])
-            print('Best Recall: %f\n' % best_score[4])
+            print('  Best F score: %f' % best_score[5])
+            print('  Best Precision: %f' % best_score[3])
+            print('  Best Recall: %f\n' % best_score[4])
             print('Word segmentation:')
-            print('Best F score: %f' % best_score[2])
-            print('Best Precision: %f' % best_score[0])
-            print('Best Recall: %f\n' % best_score[1])
+            print('  Best F score: %f' % best_score[2])
+            print('  Best Precision: %f' % best_score[0])
+            print('  Best Recall: %f\n' % best_score[1])
         else:
             print('Best F score: %f' % best_score[2])
             print('Best Precision: %f' % best_score[0])

@@ -121,9 +121,9 @@ class Tokenizer:
         self.gpu_config = "/gpu:" + str(gpu)
 
         self.main_sess = tf.Session(config=config, graph=self.main_graph)
-        print ('main_graph tensors:', file=sys.stderr)
-        for tensor in self.main_graph.get_operations():
-            print (tensor.name, file=sys.stderr)
+        #print ('main_graph tensors:', file=sys.stderr)
+        #for tensor in self.main_graph.get_operations():
+            #print (tensor.name, file=sys.stderr)
 
         if crf:
             decode_graph = tf.Graph()
@@ -131,9 +131,9 @@ class Tokenizer:
             with decode_graph.as_default():
                 self.model.decode_graph()
             decode_graph.finalize()
-            print ('\ndecode_graph tensors:', file=sys.stderr)
-            for tensor in decode_graph.get_operations():
-                print (tensor.name, file=sys.stderr)
+            #print ('\ndecode_graph tensors:', file=sys.stderr)
+            #for tensor in decode_graph.get_operations():
+                #print (tensor.name, file=sys.stderr)
 
             decode_sess = tf.Session(config=config, graph=decode_graph)
 

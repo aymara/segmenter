@@ -624,9 +624,9 @@ def get_dict_vec(trans_dict, char2idx):
     y = pad_zeros(y, max_y)
     assert len(x) == len(y)
     num = len(x)
-    xy = zip(x, y)
+    xy = list(zip(x, y))
     random.shuffle(xy)
-    xy = zip(*xy)
+    xy = list(zip(*xy))
     t_x = xy[0][:int(num * 0.95)]
     t_y = xy[1][:int(num * 0.95)]
     v_x = xy[0][int(num * 0.95):]
@@ -1128,7 +1128,7 @@ def buckets(x, y, size=50):
     num_inputs = len(x)
     samples = x + y
     num_items = len(samples)
-    xy = zip(*samples)
+    xy = list(zip(*samples))
     xy.sort(key=lambda i: len(i[0]))
     t_len = size
     idx = 0
@@ -1155,7 +1155,7 @@ def pad_bucket(x, y, limit, bucket_len_c=None):
     padded = [[] for _ in range(num_tags + num_inputs)]
     bucket_counts = []
     samples = x + y
-    xy = zip(*samples)
+    xy = list(zip(*samples))
     if bucket_len_c is None:
         bucket_len_c = []
         for i, item in enumerate(xy):
@@ -1413,9 +1413,13 @@ def generate_output_offsets(chars, tags):
     :param chars: list of lists of chars
     :param tags: list of lists of lists of tags
     """
-    #print(f'generate_output_offsets chars: { chars[0] }', file=sys.stderr)
-    #print(f'generate_output_offsets tags:  { tags[0][0] }\n\n',
-          #file=sys.stderr)
+    schars = ''.join(chars[0])
+    stags = ''.join(tags[0][0])
+    print(f'generate_output_offsets chars: { schars }', file=sys.stderr)
+    print(f'generate_output_offsets tags:  { stags }\n\n',
+          file=sys.stderr)
+    sys.stderr.flush()
+
     sentences = []
 
     for i, tag in enumerate(tags):
@@ -1469,12 +1473,13 @@ def generate_output_offsets(chars, tags):
                     current_token = current_token.strip()
                     if len(current_token) > 0:
                         # was inside a token. Validate it.
-                        current_sentence.append((current_token,
-                                                  current_token_offset))
-                        current_token = ''
-                        current_token_offset = offset
+                        #current_sentence.append((current_token,
+                                                  #current_token_offset))
+                        current_token += ch
                         current_transistion = ch
                     else:
+                        current_token = ch
+                        current_token_offset = offset
                         current_transistion += ch
                 # Beginning
                 elif tg == 'B':
@@ -1493,8 +1498,9 @@ def generate_output_offsets(chars, tags):
                     if len(current_token) > 0:
                         current_sentence.append((current_token,
                                                   current_token_offset))
-                        current_token = ''
-                        current_token_offset = offset
+                    current_token = ''
+                    current_token += ch
+                    current_token_offset = offset
                     current_transistion = ch
                 elif tg == 'T':
                     # end of sentence
@@ -1530,8 +1536,11 @@ def generate_output_offsets(chars, tags):
                     if len(current_token) > 0:
                         current_sentence.append((current_token,
                                                  current_token_offset))
-                        current_token = ''
-                        current_token_offset = offset
+                    current_token = '' if ch.isspace() else ch
+                    current_token_offset = offset
+                else:
+                    print('Unhandled char label {}'.format(tg), file=sys.stderr)
+                    assert False
             current_token = current_token.strip()
             if len(current_token) > 0:
                 current_sentence.append((current_token, current_token_offset))

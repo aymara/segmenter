@@ -4,10 +4,10 @@ import tensorflow.contrib.legacy_seq2seq as seq2seq
 import toolbox
 import batch as Batch
 import numpy as np
-import pickle
-import evaluation
-
 import os
+import pickle
+import sys
+import evaluation
 
 class Seq2seq(object):
 
@@ -31,7 +31,10 @@ class Seq2seq(object):
         self.de_vec = [tf.zeros_like(self.trans_labels[0], tf.int32)] + self.trans_labels[:-1]
         self.feed_previous = tf.placeholder(tf.bool)
         self.trans_l_rate = tf.placeholder(tf.float32, [], name='learning_rate')
-        seq_cell = tf.nn.rnn_cell.BasicLSTMCell(rnn_dim, state_is_tuple=True)
+        #seq_cell = tf.nn.rnn_cell.BasicLSTMCell(rnn_dim, state_is_tuple=True)
+        seq_cell = tf.nn.rnn_cell.LSTMCell(rnn_dim, name='basic_lstm_cell')
+        #seq_cell = tf.keras.layers.LSTMCell(rnn_dim)
+
         self.trans_output, states = seq2seq.embedding_attention_seq2seq(self.en_vec, self.de_vec, seq_cell, char_num,
                                                                         char_num, emb_dim, feed_previous=self.feed_previous)
 
@@ -53,7 +56,7 @@ class Seq2seq(object):
             param_dic['max_x'] = max_x
             param_dic['max_y'] = max_y
             # print(param_dic)
-            f_model = open(self.trained + '_model', 'w')
+            f_model = open(self.trained + '_model', 'wb')
             pickle.dump(param_dic, f_model)
             f_model.close()
 
@@ -81,6 +84,7 @@ class Seq2seq(object):
 
                 print('ACC: %f' % c_scores[0])
                 print('Token F score: %f' % c_scores[1])
+                sys.stdout.flush()
 
                 if c_scores[1] > best_score:
                     best_score = c_scores[1]
