@@ -2,6 +2,7 @@ __pycache__/
 log/
 udlog
 log-*
+*.log
 udmodel-*
 *.conllu
 output.log
